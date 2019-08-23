@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 void main(){
 
-  Firestore.instance.collection("uia-so").document("pequena-sereia").setData({"nome":"arielzinho"});
+  Firestore.instance.collection("from-ios").document("iphone").setData({"nome":"elton"});
 
   runApp(MyApp());
 }
