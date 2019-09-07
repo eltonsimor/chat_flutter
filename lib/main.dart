@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 void main() async {
   runApp(MyApp());
@@ -13,6 +15,24 @@ final ThemeData kIOSTheme = ThemeData(
 
 final ThemeData kDefaultTheme = ThemeData(
     primarySwatch: Colors.purple, accentColor: Colors.orangeAccent[400]);
+
+final googleSignIn = GoogleSignIn();
+final auth = FirebaseAuth.instance;
+
+Future<Null>_ensureLoggedIn() async {
+  GoogleSignInAccount user = googleSignIn.currentUser;
+
+  if (user == null) user = await googleSignIn.signInSilently();
+
+  if (user == null) user == await googleSignIn.signIn();
+
+  if (await auth.currentUser() == null) {
+    GoogleSignInAuthentication credentials = await googleSignIn.currentUser.authentication;
+
+    await auth.signInWithCredential(GoogleAuthProvider.getCredential(
+        idToken: credentials.idToken, accessToken: credentials.accessToken));
+  }
+}
 
 class MyApp extends StatelessWidget {
   @override
@@ -48,6 +68,11 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         body: Column(
           children: <Widget>[
+            Expanded(
+              child: ListView(
+                children: <Widget>[ChatMessage(), ChatMessage(), ChatMessage()],
+              ),
+            ),
             Container(
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
@@ -112,6 +137,39 @@ class _TextComposerState extends State<TextComposer> {
             )
           ],
         ),
+      ),
+    );
+  }
+}
+
+class ChatMessage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Container(
+            margin: const EdgeInsets.only(right: 16.0),
+            child: CircleAvatar(
+              backgroundImage: NetworkImage(
+                  "https://scontent.fcgh8-1.fna.fbcdn.net/v/t1.0-9/44277313_2344245628925316_6483917882580271104_n.jpg?_nc_cat=103&_nc_oc=AQmv-DF5HTfxC75igT2X6tur4zxjAnvB94gJUehgAhDnA_sulwMz05noVEE3eNF79Ru-evxWNS8IUIDXHIaQesZd&_nc_ht=scontent.fcgh8-1.fna&oh=72e3b24885e85bb192896cd5d70ee8c9&oe=5DFC32C2"),
+            ),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text("Elton", style: Theme.of(context).textTheme.subhead),
+                Container(
+                  margin: const EdgeInsets.only(top: 5.0),
+                  child: Text("Teste"),
+                )
+              ],
+            ),
+          )
+        ],
       ),
     );
   }
