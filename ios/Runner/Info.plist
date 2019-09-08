@@ -41,7 +41,7 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
-	<key>CFBundleTypeRole</key>
+	<key>CFBundleURLTypes</key>
 	<array>
 	    <dict>
 	        <key>CFBundleTypeRole</key>

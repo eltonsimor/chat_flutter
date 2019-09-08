@@ -17,6 +17,7 @@ final ThemeData kDefaultTheme = ThemeData(
     primarySwatch: Colors.purple, accentColor: Colors.orangeAccent[400]);
 
 final googleSignIn = GoogleSignIn();
+
 final auth = FirebaseAuth.instance;
 
 Future<Null>_ensureLoggedIn() async {
@@ -24,7 +25,7 @@ Future<Null>_ensureLoggedIn() async {
 
   if (user == null) user = await googleSignIn.signInSilently();
 
-  if (user == null) user == await googleSignIn.signIn();
+  if (user == null) user = await googleSignIn.signIn();
 
   if (await auth.currentUser() == null) {
     GoogleSignInAuthentication credentials = await googleSignIn.currentUser.authentication;
@@ -32,6 +33,22 @@ Future<Null>_ensureLoggedIn() async {
     await auth.signInWithCredential(GoogleAuthProvider.getCredential(
         idToken: credentials.idToken, accessToken: credentials.accessToken));
   }
+}
+
+_handleSubmitted(String text) async{
+  await _ensureLoggedIn();
+  _sendMessage(text: text);
+}
+
+void _sendMessage({String text, String imgUrl}){
+  Firestore.instance.collection("messages").add(
+    {
+      "text" : text,
+      "imgUrl" : imgUrl,
+      "senderName" : googleSignIn.currentUser.displayName,
+      "senderPhotoUrl" : googleSignIn.currentUser.photoUrl
+    }
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -92,7 +109,15 @@ class TextComposer extends StatefulWidget {
 }
 
 class _TextComposerState extends State<TextComposer> {
+  final _textController = TextEditingController();
   bool _isComposing = false;
+
+  void _reset(){
+    _textController.clear();
+    setState(() {
+      _isComposing = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,12 +139,17 @@ class _TextComposerState extends State<TextComposer> {
             ),
             Expanded(
               child: TextField(
+                controller: _textController,
                 decoration:
                     InputDecoration.collapsed(hintText: "Enviar uma Mensagem"),
                 onChanged: (text) {
                   setState(() {
                     _isComposing = text.length > 0;
                   });
+                },
+                onSubmitted: (text){
+                  _handleSubmitted(text);
+                  _reset();
                 },
               ),
             ),
@@ -128,11 +158,17 @@ class _TextComposerState extends State<TextComposer> {
               child: Theme.of(context).platform == TargetPlatform.iOS
                   ? CupertinoButton(
                       child: Text("Enviar"),
-                      onPressed: _isComposing ? () {} : null,
+                      onPressed: _isComposing ? () {
+                        _handleSubmitted(_textController.text);
+                        _reset();
+                      } : null,
                     )
                   : IconButton(
                       icon: Icon(Icons.send),
-                      onPressed: _isComposing ? () {} : null,
+                      onPressed: _isComposing ? () {
+                        _handleSubmitted(_textController.text);
+                        _reset();
+                      } : null,
                     ),
             )
           ],
