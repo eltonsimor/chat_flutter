@@ -41,14 +41,16 @@ _handleSubmitted(String text) async{
 }
 
 void _sendMessage({String text, String imgUrl}){
-  Firestore.instance.collection("messages").add(
-    {
-      "text" : text,
-      "imgUrl" : imgUrl,
-      "senderName" : googleSignIn.currentUser.displayName,
-      "senderPhotoUrl" : googleSignIn.currentUser.photoUrl
-    }
-  );
+  if((text != "" && text != null) || (imgUrl != "" && imgUrl != null)){
+    Firestore.instance.collection("messages").add(
+        {
+          "text" : text,
+          "imgUrl" : imgUrl,
+          "senderName" : googleSignIn.currentUser.displayName,
+          "senderPhotoUrl" : googleSignIn.currentUser.photoUrl
+        }
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {
