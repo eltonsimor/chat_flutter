@@ -20,7 +20,7 @@ final googleSignIn = GoogleSignIn();
 
 final auth = FirebaseAuth.instance;
 
-Future<Null>_ensureLoggedIn() async {
+Future<Null> _ensureLoggedIn() async {
   GoogleSignInAccount user = googleSignIn.currentUser;
 
   if (user == null) user = await googleSignIn.signInSilently();
@@ -28,26 +28,28 @@ Future<Null>_ensureLoggedIn() async {
   if (user == null) user = await googleSignIn.signIn();
 
   if (await auth.currentUser() == null) {
-    GoogleSignInAuthentication credentials = await googleSignIn.currentUser.authentication;
+    GoogleSignInAuthentication credentials = await googleSignIn.currentUser
+        .authentication;
 
     await auth.signInWithCredential(GoogleAuthProvider.getCredential(
         idToken: credentials.idToken, accessToken: credentials.accessToken));
   }
 }
 
-_handleSubmitted(String text) async{
+_handleSubmitted(String text) async {
   await _ensureLoggedIn();
   _sendMessage(text: text);
 }
 
-void _sendMessage({String text, String imgUrl}){
-  if((text != "" && text != null) || (imgUrl != "" && imgUrl != null)){
+void _sendMessage({String text, String imgUrl}) {
+  if ((text != "" && text != null) || (imgUrl != "" && imgUrl != null)) {
     Firestore.instance.collection("messages").add(
         {
-          "text" : text,
-          "imgUrl" : imgUrl,
-          "senderName" : googleSignIn.currentUser.displayName,
-          "senderPhotoUrl" : googleSignIn.currentUser.photoUrl
+          "text": text,
+          "imgUrl": imgUrl,
+          "senderName": googleSignIn.currentUser.displayName,
+          "senderPhotoUrl": googleSignIn.currentUser.photoUrl,
+          "created": DateTime.now()
         }
     );
   }
@@ -59,7 +61,9 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: "Chat App",
       debugShowCheckedModeBanner: false,
-      theme: Theme.of(context).platform == TargetPlatform.iOS
+      theme: Theme
+          .of(context)
+          .platform == TargetPlatform.iOS
           ? kIOSTheme
           : kDefaultTheme,
       home: ChatScreen(),
@@ -83,18 +87,38 @@ class _ChatScreenState extends State<ChatScreen> {
           title: Text("Chat App"),
           centerTitle: true,
           elevation:
-              Theme.of(context).platform == TargetPlatform.iOS ? 0.0 : 4.0,
+          Theme
+              .of(context)
+              .platform == TargetPlatform.iOS ? 0.0 : 4.0,
         ),
         body: Column(
           children: <Widget>[
             Expanded(
-              child: ListView(
-                children: <Widget>[ChatMessage(), ChatMessage(), ChatMessage()],
+              child: StreamBuilder(
+                stream: Firestore.instance.collection("messages").orderBy("created").snapshots(),
+                builder: (context, snapshot) {
+                  switch (snapshot.connectionState) {
+                    case ConnectionState.none:
+                    case ConnectionState.waiting:
+                      return Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    default:
+                      return ListView.builder(
+                        itemCount: snapshot.data.documents.length,
+                        itemBuilder: (context, index) {
+                          return ChatMessage(snapshot.data.documents[index].data);
+                        },
+                      );
+                  }
+                },
               ),
             ),
             Container(
               decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
+                color: Theme
+                    .of(context)
+                    .cardColor,
               ),
               child: TextComposer(),
             )
@@ -114,7 +138,7 @@ class _TextComposerState extends State<TextComposer> {
   final _textController = TextEditingController();
   bool _isComposing = false;
 
-  void _reset(){
+  void _reset() {
     _textController.clear();
     setState(() {
       _isComposing = false;
@@ -124,12 +148,16 @@ class _TextComposerState extends State<TextComposer> {
   @override
   Widget build(BuildContext context) {
     return IconTheme(
-      data: IconThemeData(color: Theme.of(context).accentColor),
+      data: IconThemeData(color: Theme
+          .of(context)
+          .accentColor),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 8.0),
-        decoration: Theme.of(context).platform == TargetPlatform.iOS
+        decoration: Theme
+            .of(context)
+            .platform == TargetPlatform.iOS
             ? BoxDecoration(
-                border: Border(top: BorderSide(color: Colors.grey[200])))
+            border: Border(top: BorderSide(color: Colors.grey[200])))
             : null,
         child: Row(
           children: <Widget>[
@@ -143,13 +171,13 @@ class _TextComposerState extends State<TextComposer> {
               child: TextField(
                 controller: _textController,
                 decoration:
-                    InputDecoration.collapsed(hintText: "Enviar uma Mensagem"),
+                InputDecoration.collapsed(hintText: "Enviar uma Mensagem"),
                 onChanged: (text) {
                   setState(() {
                     _isComposing = text.length > 0;
                   });
                 },
-                onSubmitted: (text){
+                onSubmitted: (text) {
                   _handleSubmitted(text);
                   _reset();
                 },
@@ -157,21 +185,23 @@ class _TextComposerState extends State<TextComposer> {
             ),
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 4.0),
-              child: Theme.of(context).platform == TargetPlatform.iOS
+              child: Theme
+                  .of(context)
+                  .platform == TargetPlatform.iOS
                   ? CupertinoButton(
-                      child: Text("Enviar"),
-                      onPressed: _isComposing ? () {
-                        _handleSubmitted(_textController.text);
-                        _reset();
-                      } : null,
-                    )
+                child: Text("Enviar"),
+                onPressed: _isComposing ? () {
+                  _handleSubmitted(_textController.text);
+                  _reset();
+                } : null,
+              )
                   : IconButton(
-                      icon: Icon(Icons.send),
-                      onPressed: _isComposing ? () {
-                        _handleSubmitted(_textController.text);
-                        _reset();
-                      } : null,
-                    ),
+                icon: Icon(Icons.send),
+                onPressed: _isComposing ? () {
+                  _handleSubmitted(_textController.text);
+                  _reset();
+                } : null,
+              ),
             )
           ],
         ),
@@ -181,6 +211,11 @@ class _TextComposerState extends State<TextComposer> {
 }
 
 class ChatMessage extends StatelessWidget {
+
+  final Map<String, dynamic> data;
+
+  ChatMessage(this.data);
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -192,17 +227,23 @@ class ChatMessage extends StatelessWidget {
             margin: const EdgeInsets.only(right: 16.0),
             child: CircleAvatar(
               backgroundImage: NetworkImage(
-                  "https://scontent.fcgh8-1.fna.fbcdn.net/v/t1.0-9/44277313_2344245628925316_6483917882580271104_n.jpg?_nc_cat=103&_nc_oc=AQmv-DF5HTfxC75igT2X6tur4zxjAnvB94gJUehgAhDnA_sulwMz05noVEE3eNF79Ru-evxWNS8IUIDXHIaQesZd&_nc_ht=scontent.fcgh8-1.fna&oh=72e3b24885e85bb192896cd5d70ee8c9&oe=5DFC32C2"),
+                  data["senderPhotoUrl"]
+              ),
             ),
           ),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text("Elton", style: Theme.of(context).textTheme.subhead),
+                Text(data["senderName"], style: Theme
+                    .of(context)
+                    .textTheme
+                    .subhead),
                 Container(
                   margin: const EdgeInsets.only(top: 5.0),
-                  child: Text("Teste"),
+                  child: data["imgUrl"] != null
+                      ? Image.network(data["imgUrl"], width: 250.0)
+                      : Text(data["text"]),
                 )
               ],
             ),
